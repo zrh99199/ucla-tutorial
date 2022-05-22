@@ -1,12 +1,12 @@
 import math
-import arcade
 
+import arcade
 from arcade.experimental.shadertoy import Shadertoy
 
 from constants import *
-
 from ship_sprite import ShipSprite
 from bullet import Bullet
+from color_bar import ColorBar
 from glow_ball import GlowBall
 from explosion import ExplosionMaker
 from target_spawner import TargetSpawner
@@ -31,10 +31,19 @@ class GameView(arcade.View):
         self.red = int(255 / 2)
         self.green = int(255 / 2)
         self.blue = int(255 / 2)
+        self.colors = [self.red, self.green, self.blue]
         self.delta_red = 0
         self.delta_green = 0
         self.delta_blue = 0
         self.swatch = Swatch((100, 100))
+        self.color_bars = [
+            ColorBar(
+                position=(200 + 50 * index, 100),
+                initial_value=self.colors[index],
+                color=color,
+            )
+            for index, color in enumerate(["red", "green", "blue"])
+        ]
 
         self.start_new_game()
 
@@ -67,6 +76,9 @@ class GameView(arcade.View):
         self.bullet_list.draw()
         for explosion in self.explosion_list:
             explosion.render()
+
+        for bar in self.color_bars:
+            bar.draw()
 
         self.player_sprite.draw()
         self.target_spawner.draw()
@@ -101,7 +113,7 @@ class GameView(arcade.View):
             radius=10,
             shadertoy=self.glowball_shadertoy,
         )
-        self.set_bullet_vector(bullet_sprite, 5)
+        self.set_bullet_vector(bullet_sprite, 5)  # change bullet speed here
 
     def set_bullet_vector(self, bullet_sprite, bullet_speed):
         bullet_sprite.change_y = (
@@ -132,19 +144,25 @@ class GameView(arcade.View):
     def clamp_color(self, color_value):
         return max(min(color_value, 255), 0)
 
-    def on_update(self, x):
+    def on_update(self, delta_t):
         """Move everything"""
 
         self.bullet_list.update()
         self.player_sprite.update()
         self.target_spawner.update()
         explosion_list_copy = self.explosion_list.copy()
+
+        # TODO: clean this up
         self.red = self.clamp_color(self.red + self.delta_red)
         self.green = self.clamp_color(self.green + self.delta_green)
         self.blue = self.clamp_color(self.blue + self.delta_blue)
+        self.color_bars[0].set_value(self.red)
+        self.color_bars[1].set_value(self.green)
+        self.color_bars[2].set_value(self.blue)
         self.swatch.set_color((self.red, self.green, self.blue))
+
         for explosion in explosion_list_copy:
-            explosion.update(x)
+            explosion.update(delta_t)
             if explosion.time > 0.9:
                 self.explosion_list.remove(explosion)
 
@@ -157,10 +175,14 @@ class GameView(arcade.View):
             for target in targets_hit:
                 if colors_match(bullet.get_color(), target.get_color()):
                     self.target_spawner.remove_target(target)
+                    explosion = ExplosionMaker(
+                        self.window.get_size(),
+                        target.position,
+                        target.get_color(),
+                    )
+                    self.explosion_list.append(explosion)
 
             if len(targets_hit) > 0:
-                explosion = ExplosionMaker(self.window.get_size(), bullet.position)
-                self.explosion_list.append(explosion)
                 bullet.remove_from_sprite_lists()
             else:
                 # Remove bullet if it goes off-screen

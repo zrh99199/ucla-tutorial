@@ -2,6 +2,7 @@
 // https://www.youtube.com/watch?v=xDxAnguEOn8
 
 uniform vec2 explosionPos;
+uniform vec3 color;
 
 const float TWOPI = 6.2832;
 const float PARTICLE_COUNT = 125.0;
@@ -25,7 +26,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     uv -= npos;
 
     float col = 0.;
-    vec3 baseColor = vec3(1., 0., 0.);
+    // vec3 baseColor = vec3(1., 0., 0.);
+    vec3 baseColor = color;
 
     float t = fract(iTime);
 
@@ -39,5 +41,5 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
         col += brightness/d;
     }
     // Output to screen
-    fragColor = vec4(1.0, 1.0, 1.0, col * (1.0 - t));
+    fragColor = vec4(baseColor[0], baseColor[1], baseColor[2], col * (1.0 - t));
 }
