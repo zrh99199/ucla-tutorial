@@ -7,5 +7,8 @@ class Bullet(arcade.Sprite):
         self.type = None
         self.shadertoy = shadertoy
 
+    def get_color(self):
+        pass
+
     def draw(self):
         pass

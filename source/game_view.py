@@ -1,19 +1,17 @@
-import random
 import math
 import arcade
 
-
-from typing import cast
 from arcade.experimental.shadertoy import Shadertoy
 
 from constants import *
 
 from ship_sprite import ShipSprite
 from bullet import Bullet
-from glow_line import GlowLine
 from glow_ball import GlowBall
 from explosion import ExplosionMaker
-from glow_image_sprite import GlowImageSprite
+from target_spawner import TargetSpawner
+from swatch import Swatch
+from utils import colors_match
 
 
 class GameView(arcade.View):
@@ -24,15 +22,19 @@ class GameView(arcade.View):
 
         # Sprite lists
         self.bullet_list = arcade.SpriteList()
-
         self.glowball_shadertoy = Shadertoy.create_from_file(
             self.window.get_size(), "glow_ball.glsl"
         )
-        self.glowline_shadertoy = Shadertoy.create_from_file(
-            self.window.get_size(), "glow_line.glsl"
-        )
 
         self.explosion_list = []
+        self.target_spawner = TargetSpawner(shadertoy=self.glowball_shadertoy)
+        self.red = int(255 / 2)
+        self.green = int(255 / 2)
+        self.blue = int(255 / 2)
+        self.delta_red = 0
+        self.delta_green = 0
+        self.delta_blue = 0
+        self.swatch = Swatch((100, 100))
 
         self.start_new_game()
 
@@ -67,6 +69,8 @@ class GameView(arcade.View):
             explosion.render()
 
         self.player_sprite.draw()
+        self.target_spawner.draw()
+        self.swatch.draw()
 
     def on_key_press(self, symbol, modifiers):
         """Called whenever a key is pressed."""
@@ -75,47 +79,29 @@ class GameView(arcade.View):
             self.player_sprite.change_angle = 3
         elif symbol == arcade.key.RIGHT:
             self.player_sprite.change_angle = -3
-        elif symbol == arcade.key.KEY_1:
-            color = (255, 128, 128)
+        elif symbol == arcade.key.Q:
+            self.delta_red = 1
+        elif symbol == arcade.key.A:
+            self.delta_red = -1
+        elif symbol == arcade.key.W:
+            self.delta_green = 1
+        elif symbol == arcade.key.S:
+            self.delta_green = -1
+        elif symbol == arcade.key.E:
+            self.delta_blue = 1
+        elif symbol == arcade.key.D:
+            self.delta_blue = -1
+        elif symbol == arcade.key.SPACE:
+            color = (self.red, self.green, self.blue)
             self.fire_circle(color)
-        elif symbol == arcade.key.KEY_2:
-            color = (128, 255, 128)
-            self.fire_circle(color)
-        elif symbol == arcade.key.KEY_3:
-            color = (128, 128, 255)
-            self.fire_circle(color)
-        elif symbol == arcade.key.KEY_4:
-            color = (255, 128, 255)
-            self.fire_circle(color)
-        elif symbol == arcade.key.KEY_5:
-            color = (255, 255, 255)
-            self.fire_line(color)
-        elif symbol == arcade.key.KEY_6:
-            color = (64, 255, 64)
-            self.fire_line(color)
-        elif symbol == arcade.key.KEY_7:
-            bullet_sprite = GlowImageSprite(
-                ":resources:images/space_shooter/laserBlue01.png",
-                SCALE,
-                glowcolor=arcade.color.WHITE,
-                shadertoy=self.glowball_shadertoy,
-            )
-            self.set_bullet_vector(bullet_sprite, 13, self.player_sprite)
 
     def fire_circle(self, bullet_color):
         bullet_sprite = GlowBall(
             glowcolor=bullet_color,
-            radius=5,
+            radius=10,
             shadertoy=self.glowball_shadertoy,
         )
         self.set_bullet_vector(bullet_sprite, 5)
-
-    def fire_line(self, bullet_color):
-        bullet_sprite = GlowLine(
-            glowcolor=bullet_color,
-            shadertoy=self.glowline_shadertoy,
-        )
-        self.set_bullet_vector(bullet_sprite, 13, self.player_sprite)
 
     def set_bullet_vector(self, bullet_sprite, bullet_speed):
         bullet_sprite.change_y = (
@@ -136,13 +122,27 @@ class GameView(arcade.View):
             self.player_sprite.change_angle = 0
         elif symbol == arcade.key.RIGHT:
             self.player_sprite.change_angle = 0
+        elif symbol == arcade.key.Q or symbol == arcade.key.A:
+            self.delta_red = 0
+        elif symbol == arcade.key.W or symbol == arcade.key.S:
+            self.delta_green = 0
+        elif symbol == arcade.key.E or symbol == arcade.key.D:
+            self.delta_blue = 0
+
+    def clamp_color(self, color_value):
+        return max(min(color_value, 255), 0)
 
     def on_update(self, x):
         """Move everything"""
 
         self.bullet_list.update()
         self.player_sprite.update()
+        self.target_spawner.update()
         explosion_list_copy = self.explosion_list.copy()
+        self.red = self.clamp_color(self.red + self.delta_red)
+        self.green = self.clamp_color(self.green + self.delta_green)
+        self.blue = self.clamp_color(self.blue + self.delta_blue)
+        self.swatch.set_color((self.red, self.green, self.blue))
         for explosion in explosion_list_copy:
             explosion.update(x)
             if explosion.time > 0.9:
@@ -150,19 +150,26 @@ class GameView(arcade.View):
 
         for bullet in self.bullet_list:
             assert isinstance(bullet, Bullet)
-            # asteroids = arcade.check_for_collision_with_list(bullet, self.asteroid_list)
+            targets_hit = arcade.check_for_collision_with_list(
+                bullet, self.target_spawner.get_targets()
+            )
 
-            # if len(asteroids) > 0:
-            #     explosion = ExplosionMaker(self.window.get_size(), bullet.position)
-            #     self.explosion_list.append(explosion)
+            for target in targets_hit:
+                if colors_match(bullet.get_color(), target.get_color()):
+                    self.target_spawner.remove_target(target)
 
-            # Remove bullet if it goes off-screen
-            size = max(bullet.width, bullet.height)
-            if bullet.center_x < 0 - size:
+            if len(targets_hit) > 0:
+                explosion = ExplosionMaker(self.window.get_size(), bullet.position)
+                self.explosion_list.append(explosion)
                 bullet.remove_from_sprite_lists()
-            if bullet.center_x > SCREEN_WIDTH + size:
-                bullet.remove_from_sprite_lists()
-            if bullet.center_y < 0 - size:
-                bullet.remove_from_sprite_lists()
-            if bullet.center_y > SCREEN_HEIGHT + size:
-                bullet.remove_from_sprite_lists()
+            else:
+                # Remove bullet if it goes off-screen
+                size = max(bullet.width, bullet.height)
+                if bullet.center_x < 0 - size:
+                    bullet.remove_from_sprite_lists()
+                if bullet.center_x > SCREEN_WIDTH + size:
+                    bullet.remove_from_sprite_lists()
+                if bullet.center_y < 0 - size:
+                    bullet.remove_from_sprite_lists()
+                if bullet.center_y > SCREEN_HEIGHT + size:
+                    bullet.remove_from_sprite_lists()
