@@ -1,9 +1,9 @@
 import math
 import arcade
-from bullet import Bullet
+from projectile import Projectile
 
 
-class GlowImageSprite(Bullet):
+class GlowImageSprite(Projectile):
     """Sprite that sets its angle to the direction it is traveling in."""
 
     def __init__(self, name, scale, shadertoy, glowcolor):

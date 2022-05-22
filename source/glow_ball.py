@@ -1,8 +1,8 @@
 import arcade
-from bullet import Bullet
+from projectile import Projectile
 
 
-class GlowBall(Bullet):
+class GlowBall(Projectile):
     def __init__(self, shadertoy, glowcolor, radius):
         super().__init__(shadertoy=shadertoy)
         self.type = None
