@@ -21,4 +21,4 @@ def random_position():
 
 
 def colors_match(color1, color2):
-    return math.dist(color1, color2) < 120
+    return math.dist(color1, color2) < 80

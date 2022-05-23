@@ -1,0 +1,48 @@
+These are some tasks that need to be done to improve the Color Shooter game. 
+They are listed in increasing order of complexity. If none of these appeals to you, 
+feel free to make other improvements!
+
+1. The explosion that happens when a target is successfully hit is currently white. It 
+  would be cooler if the targets exploded in their own color. Change the code so that 
+  this is the case:
+  - Find where the explosion is created in the `calculate_collisions` method. 
+  - The ExplosionMaker class takes an extra argument to its constructor called `color`.
+    Pass in the color of the target that was hit. 
+
+2. Our game is pretty silent right now. Let's add some sound effects!
+  - We'll take them from the media that comes packaged with the arade library. 
+    Add these two lines to the GameView constructor: 
+      self.laser_sound = arcade.load_sound(":resources:sounds/hurt5.wav")
+      self.hit_sound = arcade.load_sound(":resources:sounds/explosion1.wav")
+  - When the player shoots a laser, play the laser sound by calling `arcade.play_sound(<sound_to_play>)` 
+  - Similarly, when a target is successfully hit, play the hit sound.
+
+3. The game score does not work right now. To fix this, complete the following steps:
+  - Whenever a target is hit with a laser of the correct color, increment the score.
+    Use the member variable `self.score`, which has already been initialized for you.
+    Look in the function called `calculate_collisions` to get started.
+  - Next, draw the score on the screen. Uncomment the line in the `on_draw` function
+    that starts with `arcade.draw_text(...)`. Edit the score text to reflect the score 
+    you just updated.
+  - The score is currently drawn in the center of the screen. Move it so that it is drawn
+    in the top right corner instead. You should be able to use the SCREEN_WIDTH and SCREEN_HEIGHT
+    constants to do this.
+  - For an extra challenge, try one or both of the following:
+      - Change the scoring mechanism so that the player gets a lot of points for a close color
+        match, and not as many for a worse match. You may have to add some utility functions to
+        determine how close a match is (put these in the `utils.py` file).
+      - Update the scoring mechanism so that a player loses points if they hit a target
+        with a laser that is not a match.
+
+4. Lastly, the projectiles that the ship shoots are called "lasers", but they're circular and don't
+  look too much like lasers. We can change that by changing the shader that's used to draw
+  them:
+  - In the `__init__` method of the GameView class, create a new shadertoy just like the one 
+  created from "glow_ball.glsl", but this time use the file "glow_line.glsl".
+  - At the top of the file, import the `GlowLine` class from the `glow_line` file.
+  - In the `fire_projectile` method, change `laser_sprite` to be an instance of the newly
+  imported `GlowLine` class instead of `GlowBall`. Make sure to use your new shadertoy!
+  - Our laser looks pretty spindly right now. Let's edit the shader file to make it a little
+  more impressive. Open `glow_line.glsl` and read the comments there (look for "START HERE!")
+  and make it more glowy/thicker.
+  

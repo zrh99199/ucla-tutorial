@@ -26,7 +26,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     uv -= npos;
 
     float col = 0.;
-    // vec3 baseColor = vec3(1., 0., 0.);
+
     vec3 baseColor = color;
 
     float t = fract(iTime);

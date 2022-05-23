@@ -4,8 +4,10 @@ from arcade.experimental.shadertoy import Shadertoy
 
 
 class ExplosionMaker:
-    def __init__(self, size, position, color):
-        print(color)
+    """Class to create and draw explosions."""
+
+    def __init__(self, size, position, color=arcade.csscolor.WHITE):
+
         self.shadertoy: Shadertoy = Shadertoy.create_from_file(size, "explosion.glsl")
         self.shadertoy.program["explosionPos"] = position
         self.shadertoy.program["color"] = arcade.get_three_float_color(color)

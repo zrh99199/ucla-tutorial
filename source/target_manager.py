@@ -4,7 +4,7 @@ from target import Target
 from utils import random_color, random_position
 
 
-class TargetSpawner:
+class TargetManager:
     """Class to create and display targets to shoot at"""
 
     def __init__(self, shadertoy, max_targets=3):

@@ -7,7 +7,7 @@ from constants import *
 from ship_sprite import ShipSprite
 from color_bar import ColorBar
 from color_manager import ColorManager
-from glow_ball import GlowBall
+from glow_line import GlowLine
 from explosion import ExplosionMaker
 from target_manager import TargetManager
 from swatch import Swatch
@@ -25,6 +25,12 @@ class GameView(arcade.View):
         self.glowball_shadertoy = Shadertoy.create_from_file(
             self.window.get_size(), "glow_ball.glsl"
         )
+        self.glowline_shadertoy = Shadertoy.create_from_file(
+            self.window.get_size(), "glow_line.glsl"
+        )
+
+        self.laser_sound = arcade.load_sound(":resources:sounds/hurt5.wav")
+        self.hit_sound = arcade.load_sound(":resources:sounds/explosion1.wav")
 
         self.explosion_list = []
         self.target_manager = TargetManager(shadertoy=self.glowball_shadertoy)
@@ -73,6 +79,7 @@ class GameView(arcade.View):
         elif symbol == arcade.key.D:
             self.color_manager.delta_blue = -1
         elif symbol == arcade.key.SPACE:
+            arcade.play_sound(self.laser_sound)
             color = self.color_manager.colors
             self.fire_projectile(color)
 
@@ -92,10 +99,10 @@ class GameView(arcade.View):
 
     def fire_projectile(self, laser_color):
         """Shoot a projectile in the specified color in the direction the ship is pointing."""
-
-        laser_sprite = GlowBall(
-            glowcolor=laser_color, radius=10, shadertoy=self.glowball_shadertoy
+        laser_sprite = GlowLine(
+            glowcolor=laser_color, shadertoy=self.glowline_shadertoy
         )
+
         self.set_laser_vector(laser_sprite, 5)
 
     def set_laser_vector(self, laser_sprite, laser_speed):
@@ -144,8 +151,11 @@ class GameView(arcade.View):
 
             for target in targets_hit:
                 if colors_match(laser.get_color(), target.get_color()):
+                    arcade.play_sound(self.hit_sound)
                     self.target_manager.remove_target(target)
-                    explosion = ExplosionMaker(self.window.get_size(), target.position)
+                    explosion = ExplosionMaker(
+                        self.window.get_size(), target.position, target.get_color()
+                    )
                     self.explosion_list.append(explosion)
                     self.score += 1
 
@@ -193,8 +203,8 @@ class GameView(arcade.View):
         self.target_manager.draw()
         self.swatch.draw()
 
-        # arcade.draw_text(
-        #     "",
-        #     start_x=SCREEN_WIDTH / 2,
-        #     start_y=SCREEN_HEIGHT / 2,
-        # )
+        arcade.draw_text(
+            f"Score: {self.score}",
+            start_x=SCREEN_WIDTH - 100,
+            start_y=SCREEN_HEIGHT - 40,
+        )
